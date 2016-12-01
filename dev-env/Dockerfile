@@ -1,6 +1,6 @@
 from nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
 
-RUN apt-get -y update 
+RUN apt-get -y  update
 
 RUN apt-get install -y build-essential libboost1.58-all-dev git wget libqt5*5 cmake cmake-qt-gui \
                        qttools5-dev libqt5x11extras5-dev sudo wget \
@@ -50,9 +50,8 @@ RUN mkdir code/vtk/build_release && \
     cd code/vtk/build_release && \
     cmake -DVTK_Group_Qt=ON -DVTK_QT_VERSION=5 -DCMAKE_DEBUG_POSTFIX=d -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
-    make -j56 && \
-    sudo make install && \
-    cd /code && rm -fr vtk
+    make -j24 && \
+    sudo make install
 
 # ===========================================================
 # build OpenCV from source to have CUDA 8.0 support and pascal gpu support
@@ -64,30 +63,55 @@ RUN mkdir code/opencv/build_release && \
     cmake -DCMAKE_DEBUG_POSTFIX=d -DWITH_CUBLAS=True -DWITH_QT=True -DWITH_VTK=True \
           -DWITH_OPENGL=True -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
-    make -j56 && \
-    sudo make install && \
-    cd /code && rm -fr opencv
+    make -j24 && \
+    sudo make install
 
 # ===========================================================
 # build caffe from source to have CUDA 8.0 support and pascal gpu support
 # build caffe with boost log for exceptions and glog for aborts
 
 RUN git clone -b 8.0 https://github.com/nvidia/nccl code/nccl && \
-    cd code/nccl &&
-	make -j56
+    cd code/nccl && \
+	make -j24
 
-RUN git clone -b boostlog https://github.com/dtmoodie/caffe code/caffe 
+RUN git clone -b boostlog https://github.com/dtmoodie/caffe code/caffe
 
 RUN mkdir code/caffe/build && cd code/caffe/build && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DUSE_GLOG=true -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
-	      -DNCCL_INCLUDE_DIR=/code/nccl/build/include -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
-    make -j56 && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DUSE_GLOG=true \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
+          -DNCCL_INCLUDE_DIR=/code/nccl/build/include -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
+    make -j24 && \
     sudo make install
 
 RUN mkdir code/caffe/build_blog_release && cd code/caffe/build_blog_release && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DUSE_GLOG=false -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
-    make -j56 && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DUSE_GLOG=false \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
+          -DNCCL_INCLUDE_DIR=/code/nccl/build/include -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
+    make -j24 && \
     sudo make install
+
+# ===========================================================
+# build mxnet
+
+RUN sudo apt install libopenblas-dev -y
+RUN git clone https://github.com/dtmoodie/mxnet code/mxnet && cd code/mxnet && git submodule update --init --recursive
+RUN cd code/mxnet && mkdir build && cd build && \
+    cmake .. -DEXTRA_OPERATORS="example/ssd/operator" -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+    -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" && \
+    make -j24
+
+# ==========================================================
+# build flann
+
+RUN git clone https://github.com/dtmoodie/flann code/flann && \
+    cd code/flann && mkdir build && cd build && \
+    cmake .. -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+    -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
+    -DBUILD_CUDA_LIB=True && make -j24 && sudo make install
 
 
 # ===========================================================
@@ -96,3 +120,33 @@ EXPOSE 8888
 RUN jupyter notebook --generate-config
 RUN echo "c.NotebookApp.ip = '*'" >> /home/developer/.jupyter/jupyter_notebook_config.py
 CMD jupyter-notebook
+
+# ===========================================================
+# basic debugging tools
+RUN sudo apt-get update
+RUN sudo apt-get install -y gdb gdbserver python3-pil python3-matplotlib
+ADD cv_imshow.py /home/developer/code/cv_imshow.py
+RUN echo "source /home/developer/code/cv_imshow.py" > /home/developer/.gdbinit
+
+# ==========================================================
+# build pcl
+RUN git clone https://github.com/pointcloudlibrary/pcl code/pcl && \
+    cd code/pcl && mkdir build && cd build
+RUN cd code/pcl/build && cmake \
+    -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" ..
+
+
+RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB01FA116 && \
+sudo apt-get update && sudo apt-get install ros-kinetic-desktop-full -y
+
+RUN cd code/pcl/build && cmake .. \
+        -DBUILD_CUDA=ON \
+        -DBUILD_GPU=ON \
+        -DCUDA_ARCH_BIN="3.0 3.5 5.0 5.2 6.0" \
+        -DCUDA_ARCH_PTX="3.0 5.0 6.0" && \
+    make -j24 && \
+    sudo make install
+add qt* /home/developer/
+RUN sudo chown developer:developer /home/developer/qt-creator* && \
+    chmod +x /home/developer/qt-creator*
