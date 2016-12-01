@@ -48,7 +48,10 @@ RUN git clone http://github.com/kitware/vtk code/vtk
 
 RUN mkdir code/vtk/build_release && \
     cd code/vtk/build_release && \
-    cmake -DVTK_Group_Qt=ON -DVTK_QT_VERSION=5 -DCMAKE_DEBUG_POSTFIX=d -DCMAKE_BUILD_TYPE=Release \
+    cmake -DVTK_Group_Qt=ON \
+          -DVTK_QT_VERSION=5 \
+          -DCMAKE_DEBUG_POSTFIX=d \
+          -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
     make -j24 && \
     sudo make install
@@ -60,9 +63,17 @@ RUN git clone http://github.com/itseez/opencv code/opencv
 
 RUN mkdir code/opencv/build_release && \
     cd /code/opencv/build_release && \
-    cmake -DCMAKE_DEBUG_POSTFIX=d -DWITH_CUBLAS=True -DWITH_QT=True -DWITH_VTK=True \
-          -DWITH_OPENGL=True -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
-          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
+    cmake -DCMAKE_DEBUG_POSTFIX=d \
+          -DWITH_CUBLAS=True \
+          -DWITH_QT=True \
+          -DWITH_VTK=True \
+          -DWITH_OPENGL=True \
+          -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
+          -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DBUILD_PERF_TESTS=OFF \
+          -DBUILD_TESTS=OFF .. && \
     make -j24 && \
     sudo make install
 
@@ -80,8 +91,11 @@ RUN mkdir code/caffe/build && cd code/caffe/build && \
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DUSE_GLOG=true \
           -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
-          -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
-          -DNCCL_INCLUDE_DIR=/code/nccl/build/include -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
+          -DCUDA_ARCH_NAME="Manual" \
+          -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
+          -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
+          -DNCCL_INCLUDE_DIR=/code/nccl/build/include \
+          -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
     make -j24 && \
     sudo make install
 
@@ -89,8 +103,11 @@ RUN mkdir code/caffe/build_blog_release && cd code/caffe/build_blog_release && \
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DUSE_GLOG=false \
           -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
-          -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
-          -DNCCL_INCLUDE_DIR=/code/nccl/build/include -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
+          -DCUDA_ARCH_NAME="Manual" \
+          -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
+          -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
+          -DNCCL_INCLUDE_DIR=/code/nccl/build/include \
+          -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
     make -j24 && \
     sudo make install
 
@@ -100,8 +117,11 @@ RUN mkdir code/caffe/build_blog_release && cd code/caffe/build_blog_release && \
 RUN sudo apt install libopenblas-dev -y
 RUN git clone https://github.com/dtmoodie/mxnet code/mxnet && cd code/mxnet && git submodule update --init --recursive
 RUN cd code/mxnet && mkdir build && cd build && \
-    cmake .. -DEXTRA_OPERATORS="example/ssd/operator" -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
-    -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" && \
+    cmake -DEXTRA_OPERATORS="example/ssd/operator" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCUDA_ARCH_NAME="Manual" \
+          -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
+          -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" .. && \
     make -j24
 
 # ==========================================================
@@ -109,9 +129,12 @@ RUN cd code/mxnet && mkdir build && cd build && \
 
 RUN git clone https://github.com/dtmoodie/flann code/flann && \
     cd code/flann && mkdir build && cd build && \
-    cmake .. -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
-    -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
-    -DBUILD_CUDA_LIB=True && make -j24 && sudo make install
+    cmake -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCUDA_ARCH_NAME="Manual" \
+          -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
+          -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
+          -DBUILD_CUDA_LIB=True .. && \
+     make -j24 && sudo make install
 
 
 # ===========================================================
@@ -131,22 +154,22 @@ RUN echo "source /home/developer/code/cv_imshow.py" > /home/developer/.gdbinit
 # ==========================================================
 # build pcl
 RUN git clone https://github.com/pointcloudlibrary/pcl code/pcl && \
-    cd code/pcl && mkdir build && cd build
-RUN cd code/pcl/build && cmake \
-    -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" ..
-
-
-RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
-    sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB01FA116 && \
-sudo apt-get update && sudo apt-get install ros-kinetic-desktop-full -y
-
-RUN cd code/pcl/build && cmake .. \
-        -DBUILD_CUDA=ON \
-        -DBUILD_GPU=ON \
-        -DCUDA_ARCH_BIN="3.0 3.5 5.0 5.2 6.0" \
-        -DCUDA_ARCH_PTX="3.0 5.0 6.0" && \
+    cd code/pcl && mkdir build && cd build \
+    cmake -DBUILD_CUDA=ON \
+          -DBUILD_GPU=ON \
+          -DCUDA_ARCH_BIN="3.0 3.5 5.0 5.2 6.0" \
+          -DCUDA_ARCH_PTX="3.0 5.0 6.0" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
     make -j24 && \
-    sudo make install
+    sudo make install    
+
+
+RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" \
+             > /etc/apt/sources.list.d/ros-latest.list' && \
+    sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB01FA116 && \
+    sudo apt-get update && \
+    sudo apt-get install ros-kinetic-desktop-full -y
+
 add qt* /home/developer/
 RUN sudo chown developer:developer /home/developer/qt-creator* && \
     chmod +x /home/developer/qt-creator*
