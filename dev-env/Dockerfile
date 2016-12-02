@@ -11,10 +11,11 @@ RUN apt-get install -y build-essential libboost1.58-all-dev git wget libqt5*5 cm
                        gstreamer1.0-plugins-good gstreamer1.0-libav libgstreamer1.0-dev \
                        libeigen3-dev gstreamer1.0-plugins* libgstreamer1.0* gstreamer1.0* \
                        libgstreamer-plugins-base1.0-dev \
-                       libprotobuf-dev protobuf-compiler libatlas-base-dev libgflags-dev \
+                       libatlas-base-dev libgflags-dev \
                        libgoogle-glog-dev liblmdb-dev \
+                       dh-autoreconf autoconf automake libtool curl unzip \
                        libleveldb-dev libhdf5-serial-dev libsnappy-dev  \
-                       python-dev python-numpy python-matplotlib python-skimage python-protobuf \
+                       python-dev python-numpy python-matplotlib python-skimage \
                        python-pip python-sklearn
 
 RUN pip install setuptools jupyter
@@ -85,6 +86,11 @@ RUN git clone -b 8.0 https://github.com/nvidia/nccl code/nccl && \
     cd code/nccl && \
 	make -j24
 
+RUN git clone https://github.com/google/protobuf code/protobuf && \
+    cd code/protobuf && ./autogen.sh && ./configure --disable-shared && \
+    sed -i 's,CXXFLAGS = -g -DNDEBUG,CXXFLAGS = -g -DNDEBUG -fPIC,g' src/Makefile && \
+    make -j24 && sudo make install
+
 RUN git clone -b boostlog https://github.com/dtmoodie/caffe code/caffe
 
 RUN mkdir code/caffe/build && cd code/caffe/build && \
@@ -95,7 +101,12 @@ RUN mkdir code/caffe/build && cd code/caffe/build && \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
           -DNCCL_INCLUDE_DIR=/code/nccl/build/include \
-          -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
+          -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so \
+          -DPROTOBUF_LIBRARY=/usr/local/lib/libprotobuf.a \
+          -DPROTOBUF_LITE_LIBRARY=/usr/local/lib/libprotobuf-lite.a \
+          -DPROTOBUF_PROTOC_EXECUTABLE=/usr/local/bin/protoc \
+          -DPROTOBUF_PROTOC_LIBRARY=/usr/local/lib/libprotoc.a \
+          -DPROTOBUF_INCLUDE_DIR=/usr/local/include .. && \
     make -j24 && \
     sudo make install
 
@@ -154,14 +165,14 @@ RUN echo "source /home/developer/code/cv_imshow.py" > /home/developer/.gdbinit
 # ==========================================================
 # build pcl
 RUN git clone https://github.com/pointcloudlibrary/pcl code/pcl && \
-    cd code/pcl && mkdir build && cd build \
+    cd code/pcl && mkdir build && cd build && \
     cmake -DBUILD_CUDA=ON \
           -DBUILD_GPU=ON \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 5.2 6.0" \
           -DCUDA_ARCH_PTX="3.0 5.0 6.0" \
           -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
     make -j24 && \
-    sudo make install    
+    sudo make install
 
 
 RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" \
