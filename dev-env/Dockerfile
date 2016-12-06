@@ -72,7 +72,8 @@ RUN mkdir code/vtk/build_release && \
 # ===========================================================
 # build OpenCV from source to have CUDA 8.0 support and pascal gpu support
 
-RUN git clone http://github.com/itseez/opencv code/opencv
+RUN git clone http://github.com/itseez/opencv code/opencv && \
+    git clone http://github.com/itseez/opencv_contrib code/opencv_contrib
 
 RUN mkdir code/opencv/build_release && \
     cd /code/opencv/build_release && \
@@ -85,6 +86,7 @@ RUN mkdir code/opencv/build_release && \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -O3 -DNDEBUG -g" \
+          -DOPENCV_EXTRA_MODULES_PATH=/code/opencv_contrib/modules \
           -DBUILD_PERF_TESTS=OFF \
           -DBUILD_TESTS=OFF .. && \
     make -j24 && \
@@ -212,3 +214,23 @@ RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) 
 add qt* /home/developer/
 RUN sudo chown developer:developer /home/developer/qt-creator* && \
     chmod +x /home/developer/qt-creator*
+
+# ==========================================================
+# install some sexy slam stuff
+RUN git clone https://github.com/dtmoodie/suitesparse code/suitesparse \
+    cd code/suitesparse && \
+    make -j24 && \
+    sudo make install
+
+RUN git clone https://github.com/RainerKuemmerle/g2o code/g2o && \
+    cd code/g2o && mkdir build && cd build \
+    cmake .. && \
+    make -j24 &&
+    sudo make install
+
+
+
+
+
+
+
