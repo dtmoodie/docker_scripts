@@ -61,7 +61,8 @@ RUN mkdir code/vtk/build_release && \
 # ===========================================================
 # build OpenCV from source to have CUDA 8.0 support and pascal gpu support
 
-RUN git clone http://github.com/itseez/opencv code/opencv
+RUN git clone http://github.com/itseez/opencv code/opencv && \
+    git clone http://github.com/itseez/opencv_contrib code/opencv_contrib
 
 RUN mkdir code/opencv/build_release && \
     cd /code/opencv/build_release && \
@@ -73,7 +74,8 @@ RUN mkdir code/opencv/build_release && \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -O3 -DNDEBUG -g" \
+          -DOPENCV_EXTRA_MODULES_PATH=/code/opencv_contrib/modules \
           -DBUILD_PERF_TESTS=OFF \
           -DBUILD_TESTS=OFF .. && \
     make -j24 && \
@@ -81,7 +83,7 @@ RUN mkdir code/opencv/build_release && \
 
 # ===========================================================
 # build caffe from source to have CUDA 8.0 support and pascal gpu support
-# build caffe with boost log for exceptions and glog for aborts
+
 
 RUN git clone -b 8.0 https://github.com/nvidia/nccl code/nccl && \
     cd code/nccl && \
@@ -90,16 +92,17 @@ RUN git clone -b 8.0 https://github.com/nvidia/nccl code/nccl && \
 RUN git clone https://github.com/google/protobuf code/protobuf && \
     cd code/protobuf && ./autogen.sh && ./configure --disable-shared && \
     sed -i 's,CXXFLAGS =  -g -DNDEBUG,CXXFLAGS = -g -DNDEBUG -fPIC,g' src/Makefile && \
-    make -j24 && sudo make install \
-    && cd python && python setup.py build \
-    && sudo python setup.py install
+    make -j24 && sudo make install && \
+    cd python && python setup.py build && sudo python setup.py install
+
+RUN sudo apt-get install -y python-lmdb
 
 RUN git clone -b boostlog https://github.com/dtmoodie/caffe code/caffe
 
 RUN mkdir code/caffe/build && cd code/caffe/build && \
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DUSE_GLOG=true \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -O3 -DNDEBUG -g" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
@@ -113,15 +116,20 @@ RUN mkdir code/caffe/build && cd code/caffe/build && \
     make -j24 && \
     sudo make install
 
+# build caffe with boost log for exceptions and glog for aborts
 RUN mkdir code/caffe/build_blog_release && cd code/caffe/build_blog_release && \
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DUSE_GLOG=false \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -O3 -DNDEBUG -g" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
           -DNCCL_INCLUDE_DIR=/code/nccl/build/include \
-          -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so .. && \
+          -DNCCL_LIBRARY=/code/nccl/build/lib/libnccl.so \
+          -DPROTOBUF_LIBRARY=/usr/local/lib/libprotobuf.a \
+          -DPROTOBUF_LITE_LIBRARY=/usr/local/lib/libprotobuf-lite.a \
+          -DPROTOBUF_PROTOC_EXECUTABLE=/usr/local/bin/protoc \
+          -DPROTOBUF_PROTOC_LIBRARY=/usr/local/lib/libprotoc.a .. && \
     make -j24 && \
     sudo make install
 
@@ -130,21 +138,20 @@ RUN mkdir code/caffe/build_blog_release && cd code/caffe/build_blog_release && \
 
 RUN sudo apt install libopenblas-dev -y
 RUN git clone https://github.com/dtmoodie/mxnet code/mxnet && cd code/mxnet && git submodule update --init --recursive
-
 RUN cd code/mxnet && mkdir build && cd build && \
     cmake -DEXTRA_OPERATORS="example/ssd/operator" \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -DNDEBUG" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" .. && \
     make -j24
 
 # ==========================================================
-# build flann
+# build flann with cuda support
 
 RUN git clone https://github.com/dtmoodie/flann code/flann && \
     cd code/flann && mkdir build && cd build && \
-    cmake -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
+    cmake -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -O3 -DNDEBUG -g" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
@@ -174,17 +181,46 @@ RUN git clone https://github.com/pointcloudlibrary/pcl code/pcl && \
           -DBUILD_GPU=ON \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 5.2 6.0" \
           -DCUDA_ARCH_PTX="3.0 5.0 6.0" \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" .. && \
-    make  && \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -O3 -DNDEBUG -g" .. && \
+    make -j24 && \
     sudo make install
 
 
+# ==========================================================
+# install ROS
 RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" \
              > /etc/apt/sources.list.d/ros-latest.list' && \
     sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB01FA116 && \
     sudo apt-get update && \
-    sudo apt-get install ros-kinetic-desktop-full -y
+    sudo apt-get install ros-kinetic-desktop-full -y && \
+    sudo apt-get remove python-opencv libopencv-calib3d2.4v5 libopencv-contrib2.4v5 \
+        libopencv-core2.4v5 libopencv-features2d2.4v5 libopencv-flann2.4v5 \
+        libopencv-highgui2.4v5 libopencv-imgproc2.4v5 libopencv-legacy2.4v5 \
+        libopencv-ml2.4v5 libopencv-objdetect2.4v5 libopencv-photo2.4v5 \
+        libopencv-video2.4v5 -y
 
+# ==========================================================
+# copy qtcreator and prep for install
 add qt* /home/developer/
 RUN sudo chown developer:developer /home/developer/qt-creator* && \
     chmod +x /home/developer/qt-creator*
+
+# ==========================================================
+# install some sexy slam stuff
+RUN git clone https://github.com/dtmoodie/suitesparse code/suitesparse \
+    cd code/suitesparse && \
+    make -j24 && \
+    sudo make install
+
+RUN git clone https://github.com/RainerKuemmerle/g2o code/g2o && \
+    cd code/g2o && mkdir build && cd build \
+    cmake .. && \
+    make -j24 &&
+    sudo make install
+
+
+
+
+
+
+
