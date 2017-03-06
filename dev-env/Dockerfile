@@ -53,7 +53,8 @@ RUN mkdir code/vtk/build_release && \
           -DVTK_QT_VERSION=5 \
           -DCMAKE_DEBUG_POSTFIX=d \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
+          -DModule_vtkGUISupportQtOpenGL \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" .. && \
     make -j24 && \
     sudo make install
 
@@ -72,7 +73,7 @@ RUN mkdir code/opencv/build_release && \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
           -DBUILD_PERF_TESTS=OFF \
           -DBUILD_TESTS=OFF .. && \
     make -j24 && \
@@ -88,15 +89,17 @@ RUN git clone -b 8.0 https://github.com/nvidia/nccl code/nccl && \
 
 RUN git clone https://github.com/google/protobuf code/protobuf && \
     cd code/protobuf && ./autogen.sh && ./configure --disable-shared && \
-    sed -i 's,CXXFLAGS = -g -DNDEBUG,CXXFLAGS = -g -DNDEBUG -fPIC,g' src/Makefile && \
-    make -j24 && sudo make install
+    sed -i 's,CXXFLAGS =  -g -DNDEBUG,CXXFLAGS = -g -DNDEBUG -fPIC,g' src/Makefile && \
+    make -j24 && sudo make install \
+    && cd python && python setup.py build \
+    && sudo python setup.py install
 
 RUN git clone -b boostlog https://github.com/dtmoodie/caffe code/caffe
 
 RUN mkdir code/caffe/build && cd code/caffe/build && \
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DUSE_GLOG=true \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
@@ -113,7 +116,7 @@ RUN mkdir code/caffe/build && cd code/caffe/build && \
 RUN mkdir code/caffe/build_blog_release && cd code/caffe/build_blog_release && \
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DUSE_GLOG=false \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
@@ -127,9 +130,10 @@ RUN mkdir code/caffe/build_blog_release && cd code/caffe/build_blog_release && \
 
 RUN sudo apt install libopenblas-dev -y
 RUN git clone https://github.com/dtmoodie/mxnet code/mxnet && cd code/mxnet && git submodule update --init --recursive
+
 RUN cd code/mxnet && mkdir build && cd build && \
     cmake -DEXTRA_OPERATORS="example/ssd/operator" \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" .. && \
@@ -140,7 +144,7 @@ RUN cd code/mxnet && mkdir build && cd build && \
 
 RUN git clone https://github.com/dtmoodie/flann code/flann && \
     cd code/flann && mkdir build && cd build && \
-    cmake -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" \
+    cmake -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
           -DCUDA_ARCH_NAME="Manual" \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
           -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
@@ -170,8 +174,8 @@ RUN git clone https://github.com/pointcloudlibrary/pcl code/pcl && \
           -DBUILD_GPU=ON \
           -DCUDA_ARCH_BIN="3.0 3.5 5.0 5.2 6.0" \
           -DCUDA_ARCH_PTX="3.0 5.0 6.0" \
-          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer" .. && \
-    make -j24 && \
+          -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" .. && \
+    make  && \
     sudo make install
 
 
