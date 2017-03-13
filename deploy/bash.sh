@@ -16,6 +16,6 @@ nvidia-docker run \
   -p 39999:39999 \
   -p 17815:17815 \
   --net=host \
-  dtmoodie/dev-env:release bash
+  dtmoodie/dev-env:deploy bash
 
 xhost -local:root
