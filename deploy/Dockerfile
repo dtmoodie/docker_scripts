@@ -2,7 +2,7 @@ from nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
 
 RUN apt-get -y  update
 
-RUN apt-get install -y build-essential libboost1.58-all-dev git wget libqt5*5 cmake cmake-qt-gui \
+RUN apt-get install -y build-essential libboost1.58-all-dev git wget cmake cmake-gui libqt5*5 \
                        qttools5-dev libqt5x11extras5-dev sudo wget \
                        freeglut3-dev nano htop tmux cmake-curses-gui \
                        libavformat-dev libavcodec-dev libavdevice-dev libavfilter-dev \
@@ -42,6 +42,13 @@ ENV HOME /home/developer
 
 RUN sudo mkdir code && sudo chown developer:developer code
 
+RUN git clone http://github.com/kitware/cmake code/cmake && \
+    mkdir code/cmake/build && \
+    cd code/cmake/build && \
+    cmake .. -DBUILD_QtDialog=ON && \
+    make -j24 && sudo make install && \
+    cd .. && \
+    rm -fr build
 
 # ===========================================================
 # build VTK from source to have qt integration and OpenGL2 rendering backend
@@ -103,7 +110,7 @@ RUN mkdir code/opencv/build_release && \
 
 RUN git clone -b 8.0 https://github.com/nvidia/nccl code/nccl && \
     cd code/nccl && \
-	make -j24
+    make -j24
 
 RUN git clone https://github.com/google/protobuf code/protobuf && \
     cd code/protobuf && \
