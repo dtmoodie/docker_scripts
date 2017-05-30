@@ -1,4 +1,4 @@
-from nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
+from nvidia/cuda:8.0-cudnn6-devel-ubuntu16.04
 
 RUN apt-get -y update
 
@@ -99,7 +99,7 @@ RUN git clone -b allocator_improvements \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS="-std=c++11" \
           -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -O3 -DNDEBUG" \
-          -DCUDA_PROPAGATE_HOST_FLAGS=ON \
+          -DCUDA_PROPAGATE_HOST_FLAGS=OFF \
           -DCUDA_NVCC_FLAGS="-std=c++11;--expt-relaxed-constexpr" \
           -DCMAKE_SHARED_LINKER_FLAGS="-fPIC" \
           -DBUILD_PERF_TESTS=OFF \
@@ -164,23 +164,9 @@ RUN mkdir code/caffe/build && cd code/caffe/build && \
     sudo make install && \
     make clean
 
-
+RUN sudo apt-get install -y libflann-dev
 # ==========================================================
-# build flann
-
-RUN git clone https://github.com/dtmoodie/flann code/flann && \
-    cd code/flann && mkdir build && cd build && \
-    cmake -DCMAKE_CXX_FLAGS_RELEASE="-fno-omit-frame-pointer -g -DNDEBUG -O3" \
-          -DCUDA_ARCH_NAME="Manual" \
-          -DCUDA_ARCH_BIN="3.0 3.5 5.0 6.0 6.1" \
-          -DCUDA_ARCH_PTX="3.0 3.5 5.0 6.0" \
-          -DBUILD_CUDA_LIB=True .. && \
-     make -j$(nproc) && sudo make install && \
-     make clean
-
-
-# ==========================================================
-# build pcl
+# build pcl with cuda
 RUN git clone https://github.com/pointcloudlibrary/pcl code/pcl && \
     cd code/pcl && mkdir build && cd build && \
     cmake -DBUILD_CUDA=ON \
@@ -192,13 +178,6 @@ RUN git clone https://github.com/pointcloudlibrary/pcl code/pcl && \
     sudo make install && \
     make clean
 
-RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" \
-             > /etc/apt/sources.list.d/ros-latest.list' && \
-    sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB01FA116 && \
-    sudo apt-get update && \
-    sudo apt-get install ros-kinetic-desktop-full -y
-
-
 # ===========================================================
 # These lines makes the jupyter-notebook server accessible via a remote connection
 EXPOSE 8888
@@ -206,14 +185,18 @@ RUN jupyter notebook --generate-config
 RUN echo "c.NotebookApp.ip = '*'" >> /home/developer/.jupyter/jupyter_notebook_config.py
 CMD jupyter-notebook
 
+# ===========================================================
+# build WT 
 RUN cd code && git clone https://github.com/emweb/wt && \
     cd wt && mkdir build && \
     cd build && cmake .. && make -j$(nproc) && \
     sudo make install && make clean
 
+# ===========================================================
+# build mxnet
 RUN sudo apt-get install -y libopenblas-dev python-dev python-setuptools python-numpy
 
-RUN cd code && git clone --recursive https://github.com/dmlc/mxnet && \
+RUN cd code && git clone --recursive -b gpu_access https://github.com/dtmoodie/mxnet && \
     cd mxnet && \
     mkdir build && cd build && \
     cmake .. -DOpenCV_DIR=/usr/local/share/OpenCV \
@@ -225,5 +208,13 @@ RUN cd code/mxnet/python && \
     mkdir /code/mxnet/lib && \
     cp /code/mxnet/build/libmxnet.so /code/mxnet/lib/ && \
     sudo python setup.py install
-      
+
 RUN pip install graphviz
+
+# ==============================================================
+# install ros binary
+RUN sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" \
+             > /etc/apt/sources.list.d/ros-latest.list' && \
+    sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB01FA116 && \
+    sudo apt-get update && \
+    sudo apt-get install ros-kinetic-desktop-full -y
